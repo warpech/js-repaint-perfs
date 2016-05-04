@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="description" content="DBMON Ploymer" />
+  <script src="../lib/polymer/bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script>
+    window.Polymer = window.Polymer || {};
+    window.Polymer.dom = "shadow";
+  </script>
+
+  <link rel="import" href="db-table-complex.html"/>
+  <meta charset="utf-8">
+  <title>dbmon (Polymer 1.0 - complex)</title>
+  <style>
+    input[type="range"] {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <db-table></db-table>
+  <script src="../ENV.js"></script>
+  <script src="../lib/memory-stats.js"></script>
+  <script src="../lib/monitor.js"></script>
+</body>
+</html>
