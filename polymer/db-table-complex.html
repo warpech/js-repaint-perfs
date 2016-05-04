@@ -1,0 +1,210 @@
+<link rel="import" href="../lib/polymer/bower_components/polymer/polymer.html">
+
+<dom-module id="query-row">
+  <template strip-whitespace>
+    <style>
+      :host {
+        display: inline-flex;
+        flex: 1;
+        justify-content: center;
+      }
+      .warn {
+        background: yellow;
+      }
+      .warn_long {
+        background: orange;
+      }
+      .short {
+        background: lightgreen;
+      }
+      .empty {
+        background: gray;
+      }
+      span {
+        flex: 1;
+        text-align: center;
+      }
+    </style>
+    <span class$="[[elapsedClass]]">[[formatElapsed]]</span>
+  </template>
+  <script>
+    Polymer({
+      is: 'query-row',
+      properties: {
+        query: {
+          type: Object
+        },
+        formatElapsed: {
+          type: String,
+          computed: '_format(query.elapsed)'
+        },
+        elapsedClass: {
+          type: String,
+          computed: '_computeClassName(query.elapsed)'
+        }
+      },
+      listeners: {
+        'tap': '_log'
+      },
+      _log: function() {
+        console.log(this.formatElapsed);
+      },
+      _computeClassName: function(elapsed) {
+        if (elapsed > 10) {
+          return 'warn_long';
+        } else if (elapsed > 1) {
+          return 'warn';
+        } else if (elapsed) {
+          return 'short';
+        } else {
+          return 'empty';
+        }
+      },
+      _format: function(value) {
+        if (!value) {
+          return '';
+        }
+        var str = parseFloat(value).toFixed(2);
+        if (value > 60) {
+          minutes = Math.floor(value / 60);
+          comps = (value % 60).toFixed(2).split('.');
+          seconds = comps[0].lpad('0', 2);
+          ms = comps[1];
+          str = minutes + ":" + seconds + "." + ms;
+        }
+        return str;
+      }
+    });
+  </script>
+</dom-module>
+
+<dom-module id="query-count">
+  <template strip-whitespace>
+    <style>
+      :host {
+        display: inline-flex;
+        flex: 1;
+        justify-content: center;
+      }
+      .success {
+        background-color: lightgreen;
+      }
+      .warn {
+        background-color: orange;
+      }
+      .important {
+        background-color: red;
+      }
+    </style>
+    <span class$="[[countClassName]]">[[numQueries]]</span>
+  </template>
+  <script>
+    Polymer({
+      is: 'query-count',
+      properties: {
+        queries: {
+          type: Number
+        },
+        countClassName: {
+          type: String,
+          computed: '_computeClassName(queries)'
+        },
+        numQueries: {
+          type: Number,
+          computed: '_pad(queries)'
+        }
+      },
+      listeners: {
+        tap: '_log'
+      },
+      _log: function() {
+        console.log(this.numQueries);
+      },
+      _pad: function(num) {
+        if (num < 10) {
+          return '0' + num;
+        } else {
+          return num;
+        }
+      },
+      _computeClassName: function(num) {
+        var str = 'success';
+        if (num >= 20) {
+          str = 'important';
+        } else if (num >= 10) {
+          str = 'warn';
+        }
+        return str;
+      }
+    });
+  </script>
+</dom-module>
+
+<dom-module id="db-table">
+<template strip-whitespace>
+  <style>
+    :host {
+      display: block;
+    }
+    [row] {
+      display: flex;
+      flex-direction: row;
+    }
+    .dbname {
+      flex: 1;
+      font-weight: bold;
+    }
+    .odd {
+      background-color: #c3c3c3;
+    }
+  </style>
+  <div>
+    <label>Enabled? <input type="checkbox" checked="{{go::change}}"></label>
+  </div>
+  <template is="dom-repeat" items="[[databases]]" as="db" strip-whitespace>
+    <div row class$="[[_colorRow(index)]]">
+      <div class="dbname">[[db.dbname]]</div>
+      <query-count queries="[[db.lastSample.nbQueries]]"></query-count>
+      <template is="dom-repeat" items="[[db.lastSample.topFiveQueries]]" as="q" strip-whitespace>
+        <query-row query="[[q]]"></query-row>
+      </template>
+    </div>
+  </template>
+</template>
+
+<script>
+  Polymer({
+    is: 'db-table',
+    properties: {
+      databases: {
+        type: Array,
+        value: function() { return []; }
+      },
+      go: {
+        type: Boolean,
+        value: true,
+        observer: '_start'
+      }
+    },
+    _colorRow: function(index) {
+      return (index % 2) ? 'odd' : '';
+    },
+    _start: function() {
+      if (window.ENV) {
+        this.refreshData();
+      }
+    },
+    attached: function() {
+      // when we are inserted into DOM, start watching the time
+      this._start();
+    },
+    refreshData: function() {
+      if (this.go) {
+        this.databases = ENV.generateData().toArray();
+        Monitoring.renderRate.ping();
+        this.async(this.refreshData, 1);
+      }
+    }
+  });
+</script>
+</dom-module>
